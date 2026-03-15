@@ -891,10 +891,10 @@ async function doExport() {
       payload.apps.wanderplan = {
         version: 2,
         exported: new Date().toISOString(),
-        trips
+        trips: trips.map(t => { const c = {...t}; delete c.documents; return c; }) // strip binary docs
       };
     }
-  } catch(e) {}
+  } catch(e) { console.warn('WanderPlan export skipped:', e); }
 
   // Stamp and download
   localStorage.setItem(BK_TS_KEY, new Date().toISOString());
@@ -916,32 +916,51 @@ async function doExport() {
 function readIDB(dbName, version, store) {
   return new Promise((res, rej) => {
     const req = indexedDB.open(dbName, version);
-    req.onsuccess = e => {
-      try {
-        const tx  = e.target.result.transaction(store, 'readonly');
-        const all = tx.objectStore(store).getAll();
-        all.onsuccess = () => res(all.result);
-        all.onerror   = () => rej();
-      } catch(_) { rej(); }
+    req.onupgradeneeded = e => {
+      // create store if it doesn't exist yet
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('trips')) d.createObjectStore('trips', { keyPath: 'id' });
+      if (!d.objectStoreNames.contains('docs'))  d.createObjectStore('docs',  { keyPath: 'id' });
     };
-    req.onerror = () => rej();
+    req.onsuccess = e => {
+      const db = e.target.result;
+      try {
+        const tx  = db.transaction(store, 'readonly');
+        const all = tx.objectStore(store).getAll();
+        all.onsuccess = () => { db.close(); res(all.result || []); };
+        all.onerror   = () => { db.close(); rej(new Error('IDB read failed')); };
+      } catch(err) { db.close(); rej(err); }
+    };
+    req.onerror = () => rej(req.error);
   });
 }
 
 function writeIDB(dbName, version, store, records) {
   return new Promise((res, rej) => {
     const req = indexedDB.open(dbName, version);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('trips')) d.createObjectStore('trips', { keyPath: 'id' });
+      if (!d.objectStoreNames.contains('docs'))  d.createObjectStore('docs',  { keyPath: 'id' });
+    };
     req.onsuccess = e => {
       const db = e.target.result;
       try {
-        const tx = db.transaction(store, 'readwrite');
-        const os = tx.objectStore(store);
-        records.forEach(r => os.put(r));
-        tx.oncomplete = res;
-        tx.onerror    = rej;
-      } catch(_) { rej(); }
+        // First clear existing records, then write fresh ones
+        const clearTx = db.transaction(store, 'readwrite');
+        const clearReq = clearTx.objectStore(store).clear();
+        clearTx.oncomplete = () => {
+          // Now write all records
+          const writeTx = db.transaction(store, 'readwrite');
+          const os = writeTx.objectStore(store);
+          records.forEach(r => os.put(r));
+          writeTx.oncomplete = () => { db.close(); res(); };
+          writeTx.onerror    = () => { db.close(); rej(writeTx.error); };
+        };
+        clearTx.onerror = () => { db.close(); rej(clearTx.error); };
+      } catch(err) { db.close(); rej(err); }
     };
-    req.onerror = rej;
+    req.onerror = () => rej(req.error);
   });
 }
 
@@ -1100,21 +1119,15 @@ function loadStats() {
     document.getElementById('stat-wealth').textContent = n ? `${funds}F · ${stocks}S` : 'No holdings yet';
   } catch(e) {}
 
-  try {
-    const req = indexedDB.open('wanderplan_db', 2);
-    req.onsuccess = e => {
-      try {
-        const tx  = e.target.result.transaction('trips','readonly');
-        const all = tx.objectStore('trips').getAll();
-        all.onsuccess = () => {
-          const n = (all.result||[]).length;
-          document.getElementById('val-trips').textContent = n;
-          document.getElementById('stat-wander').textContent = n ? `${n} trip${n!==1?'s':''} planned` : 'No trips yet';
-        };
-      } catch(_) { document.getElementById('val-trips').textContent = '0'; }
-    };
-    req.onerror = () => { document.getElementById('val-trips').textContent = '0'; };
-  } catch(e) {}
+  // WanderPlan — use readIDB helper (handles missing DB gracefully)
+  readIDB('wanderplan_db', 2, 'trips').then(trips => {
+    const n = (trips || []).length;
+    document.getElementById('val-trips').textContent = n;
+    document.getElementById('stat-wander').textContent = n ? `${n} trip${n!==1?'s':''} planned` : 'No trips yet';
+  }).catch(() => {
+    document.getElementById('val-trips').textContent = '0';
+    document.getElementById('stat-wander').textContent = 'No trips yet';
+  });
 }
 loadStats();
 
