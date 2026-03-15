@@ -585,7 +585,7 @@ body {
     </div>
     <div class="stat-box" onclick="go('docvault.html')">
       <div class="stat-box-val" id="val-docs">—</div>
-      <div class="stat-box-label">Expiry</div>
+      <div class="stat-box-label">Docs</div>
     </div>
     <div class="stat-box" onclick="go('wanderplan.html')">
       <div class="stat-box-val" id="val-trips">—</div>
@@ -1063,19 +1063,28 @@ function loadStats() {
       const in90  = new Date(); in90.setDate(today.getDate() + 90);
       const expired = dv.filter(d => d.expiry && new Date(d.expiry) < today).length;
       const soon    = dv.filter(d => d.expiry && new Date(d.expiry) >= today && new Date(d.expiry) <= in90).length;
-      const medical = dv.filter(d => d.category === 'Medical' && d.type === 'medical_rec').length;
-      const vaccine = dv.filter(d => d.type === 'vaccine').length;
-      // stat box — expiry alert
+      // only count medical/vaccine that are expiring or expiring soon
+      const medExpired = dv.filter(d => d.category === 'Medical' && d.type === 'medical_rec' && d.expiry && new Date(d.expiry) < today).length;
+      const medSoon    = dv.filter(d => d.category === 'Medical' && d.type === 'medical_rec' && d.expiry && new Date(d.expiry) >= today && new Date(d.expiry) <= in90).length;
+      const vacExpired = dv.filter(d => d.type === 'vaccine' && d.expiry && new Date(d.expiry) < today).length;
+      const vacSoon    = dv.filter(d => d.type === 'vaccine' && d.expiry && new Date(d.expiry) >= today && new Date(d.expiry) <= in90).length;
+      // stat box — show expiry count if any, else tick
       const alert = expired + soon;
-      document.getElementById("val-docs").textContent = alert > 0 ? alert : dv.length;
-      document.getElementById("val-docs").style.color = expired > 0 ? "var(--split-c)" : soon > 0 ? "#b45309" : "var(--ink)";
-      // card sub-stat
+      if (alert > 0) {
+        document.getElementById("val-docs").textContent = alert;
+        document.getElementById("val-docs").style.color = expired > 0 ? "var(--split-c)" : "#b45309";
+      } else {
+        document.getElementById("val-docs").textContent = "✓";
+        document.getElementById("val-docs").style.color = "var(--wander-c)";
+      }
+      // card sub-stat — only show medical/vaccine if they are the ones expiring
       let docSub = [];
-      if (expired)       docSub.push(expired + " expired");
-      else if (soon)     docSub.push(soon + " expiring soon");
-      if (medical)       docSub.push(medical + " medical");
-      if (vaccine)       docSub.push(vaccine + " vaccine");
-      document.getElementById("stat-doc").textContent = docSub.length ? docSub.join(" · ") : dv.length + " documents";
+      if (expired)        docSub.push(expired + " expired");
+      else if (soon)      docSub.push(soon + " expiring soon");
+      else                docSub.push("all clear");
+      if (medExpired + medSoon > 0) docSub.push((medExpired + medSoon) + " medical");
+      if (vacExpired + vacSoon > 0) docSub.push((vacExpired + vacSoon) + " vaccine");
+      document.getElementById("stat-doc").textContent = docSub.join(" · ");
     } else {
       document.getElementById("val-docs").textContent = "0";
       document.getElementById("stat-doc").textContent = "No docs yet";
