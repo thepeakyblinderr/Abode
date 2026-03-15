@@ -593,7 +593,7 @@ body {
   <div class="stat-row" style="margin-top:0">
     <div class="stat-box" onclick="go('splitvault.html')">
       <div class="stat-box-val" id="val-expenses">—</div>
-      <div class="stat-box-label">Spent</div>
+      <div class="stat-box-label">This Month</div>
     </div>
     <div class="stat-box" onclick="go('docvault.html')">
       <div class="stat-box-val" id="val-docs">—</div>
@@ -1027,26 +1027,25 @@ async function confirmRestore() {
 
 // ── Live stats ───────────────────────────────────────────────
 function loadStats() {
-  // SplitVault — total ₹ amount (personal + group expenses)
+  // SplitVault — current month ₹ total
   try {
     const sv = JSON.parse(localStorage.getItem("sv4") || "null");
     if (sv) {
+      const thisM = new Date().toISOString().slice(0,7); // "YYYY-MM"
       const personalAmt = Array.isArray(sv.personal)
-        ? sv.personal.reduce((s,e) => s + (+e.amount||0), 0) : 0;
+        ? sv.personal.filter(e => (e.date||'').startsWith(thisM)).reduce((s,e) => s + (+e.amount||0), 0) : 0;
       const groupAmt = Array.isArray(sv.groups)
-        ? sv.groups.reduce((s,g) => s + (g.expenses||[]).filter(e=>!e.isSettlement).reduce((gs,e) => gs + (+e.amount||0), 0), 0) : 0;
+        ? sv.groups.reduce((s,g) => s + (g.expenses||[]).filter(e => !e.isSettlement && (e.date||'').startsWith(thisM)).reduce((gs,e) => gs + (+e.amount||0), 0), 0) : 0;
       const total = personalAmt + groupAmt;
       const display = total >= 10000000 ? (total/10000000).toFixed(1)+"Cr"
         : total >= 100000 ? (total/100000).toFixed(1)+"L"
         : total >= 1000   ? (total/1000).toFixed(1)+"k"
         : Math.round(total).toString();
-      const count = (Array.isArray(sv.personal) ? sv.personal.length : 0)
-        + (Array.isArray(sv.groups) ? sv.groups.reduce((s,g)=>s+((g.expenses||[]).filter(e=>!e.isSettlement).length),0) : 0);
-      document.getElementById("val-expenses").textContent = total > 0 ? "₹"+display : "0";
-      document.getElementById("stat-split").textContent = count ? count + " expense" + (count!==1?"s":"") : "No expenses yet";
+      document.getElementById("val-expenses").textContent = "₹"+(total > 0 ? display : "0");
+      document.getElementById("stat-split").textContent = total > 0 ? "this month" : "No spend this month";
     } else {
       document.getElementById("val-expenses").textContent = "₹0";
-      document.getElementById("stat-split").textContent = "No expenses yet";
+      document.getElementById("stat-split").textContent = "No spend this month";
     }
   } catch(e) { document.getElementById("val-expenses").textContent = "—"; }
 
