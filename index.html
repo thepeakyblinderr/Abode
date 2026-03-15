@@ -879,10 +879,16 @@ async function doExport() {
     if (wmSync) payload.apps.wealth_sync = { key:'wm_sync_url', data: wmSync };
   } catch(e) {}
 
-  // WanderPlan — IndexedDB trips only (no attachments)
+  // WanderPlan — IndexedDB trips only, saved in WanderPlan's own format
   try {
     const trips = await readIDB('wanderplan_db', 2, 'trips');
-    if (trips && trips.length) payload.apps.wanderplan = { trips };
+    if (trips && trips.length) {
+      payload.apps.wanderplan = {
+        version: 2,
+        exported: new Date().toISOString(),
+        trips
+      };
+    }
   } catch(e) {}
 
   // Stamp and download
@@ -1014,7 +1020,7 @@ async function confirmRestore() {
     if (apps.wealth) localStorage.setItem('wm_state', JSON.stringify(apps.wealth.data));
     if (apps.wealth_sync) localStorage.setItem('wm_sync_url', apps.wealth_sync.data);
 
-    // WanderPlan
+    // WanderPlan — write trips back to IndexedDB
     if (apps.wanderplan?.trips?.length) {
       await writeIDB('wanderplan_db', 2, 'trips', apps.wanderplan.trips);
     }
@@ -1038,23 +1044,27 @@ async function confirmRestore() {
 function loadStats() {
   try {
     const sv = JSON.parse(localStorage.getItem('sv4') || 'null');
-    const n  = sv && sv.groups ? Object.keys(sv.groups).length : 0;
+    // groups is an array, not an object
+    const n  = sv && Array.isArray(sv.groups) ? sv.groups.length : 0;
     document.getElementById('val-groups').textContent = n;
     document.getElementById('stat-split').textContent = n ? `${n} group${n!==1?'s':''}` : 'No groups yet';
   } catch(e) {}
 
   try {
     const dv = JSON.parse(localStorage.getItem('dv3b_docs') || '[]');
-    const n  = dv.length;
+    const n  = Array.isArray(dv) ? dv.length : 0;
     document.getElementById('val-docs').textContent = n;
     document.getElementById('stat-doc').textContent = n ? `${n} document${n!==1?'s':''}` : 'No docs yet';
   } catch(e) {}
 
   try {
     const wm = JSON.parse(localStorage.getItem('wm_state') || 'null');
-    const n  = (wm && Array.isArray(wm.portfolio)) ? wm.portfolio.length : 0;
+    // wealth uses funds + stocks arrays, not portfolio
+    const funds  = (wm && Array.isArray(wm.funds))  ? wm.funds.length  : 0;
+    const stocks = (wm && Array.isArray(wm.stocks)) ? wm.stocks.length : 0;
+    const n = funds + stocks;
     document.getElementById('val-wealth').textContent = n;
-    document.getElementById('stat-wealth').textContent = n ? `${n} holding${n!==1?'s':''}` : 'No holdings yet';
+    document.getElementById('stat-wealth').textContent = n ? `${funds}F · ${stocks}S` : 'No holdings yet';
   } catch(e) {}
 
   try {
