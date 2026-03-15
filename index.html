@@ -579,13 +579,13 @@ body {
       style="background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:10px;color:var(--ink3);padding:4px 0;letter-spacing:.04em;transition:opacity .2s">↺ Refresh</button>
   </div>
   <div class="stat-row" style="margin-top:0">
-    <div class="stat-box" onclick="go('splitvault.html')">
+    <div class="stat-box" onclick="go('moneymate.html')">
       <div class="stat-box-val" id="val-expenses">—</div>
       <div class="stat-box-label">This Month</div>
     </div>
     <div class="stat-box" onclick="go('docvault.html')">
       <div class="stat-box-val" id="val-docs">—</div>
-      <div class="stat-box-label">Docs</div>
+      <div class="stat-box-label">Expiry</div>
     </div>
     <div class="stat-box" onclick="go('wanderplan.html')">
       <div class="stat-box-val" id="val-trips">—</div>
@@ -602,12 +602,12 @@ body {
     <div class="section-head"><span class="section-title">Apps</span></div>
     <div class="apps-grid">
 
-      <a class="app-card card-split" href="splitvault.html" id="card-split">
+      <a class="app-card card-split" href="moneymate.html" id="card-split">
         <div class="card-stripe"></div>
         <div class="card-body">
-          <div class="card-icon">🧾</div>
-          <div class="card-name">SplitVault</div>
-          <div class="card-desc">Split expenses &amp; settle debts</div>
+          <div class="card-icon">💰</div>
+          <div class="card-name">MoneyMate</div>
+          <div class="card-desc">Expenses, splits &amp; maintenance</div>
           <div class="card-footer">
             <span class="card-stat-text" id="stat-split">—</span>
             <span class="card-dot"></span>
@@ -708,7 +708,7 @@ body {
 
 <script>
 const APPS = {
-  split:  { name:'SplitVault', emoji:'🧾', color:'#c0392b', href:'splitvault.html' },
+  split:  { name:'MoneyMate', emoji:'💰', color:'#c0392b', href:'moneymate.html' },
   wealth: { name:'Wealth',     emoji:'💹', color:'#7B2FBE', href:'wealth.html'     },
   doc:    { name:'DocVault',   emoji:'📁', color:'#1a56db', href:'docvault.html'   },
   wander: { name:'WanderPlan', emoji:'✈️', color:'#047857', href:'wanderplan.html' },
@@ -776,7 +776,7 @@ async function doExport() {
     apps: {}
   };
 
-  // SplitVault
+  // MoneyMate
   try {
     const sv = localStorage.getItem('sv4');
     if (sv) payload.apps.splitvault = { key:'sv4', data: JSON.parse(sv) };
@@ -928,13 +928,13 @@ function handleRestoreFile(e) {
 function showRestoreModal(payload) {
   const apps = payload.apps;
   const rows = [
-    { id:'splitvault', label:'SplitVault', emoji:'🧾', has: !!apps.splitvault },
+    { id:'splitvault', label:'MoneyMate', emoji:'🧾', has: !!apps.splitvault },
     { id:'wealth',     label:'Wealth',     emoji:'💹', has: !!apps.wealth     },
     { id:'docvault',   label:'DocVault',   emoji:'📁', has: !!apps.docvault   },
     { id:'wanderplan', label:'WanderPlan', emoji:'✈️', has: !!apps.wanderplan  },
   ];
 
-  const sourceLabel = { wanderplan:'WanderPlan', splitvault:'SplitVault', docvault:'DocVault', wealth:'Wealth' };
+  const sourceLabel = { wanderplan:'WanderPlan', splitvault:'MoneyMate', docvault:'DocVault', wealth:'Wealth' };
   const sourceName  = payload._source ? `${sourceLabel[payload._source] || payload._source} backup` : 'Abode backup';
   const date = payload.exported
     ? new Date(payload.exported).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
@@ -976,7 +976,7 @@ async function confirmRestore() {
   btn.disabled    = true;
 
   try {
-    // SplitVault
+    // MoneyMate
     if (apps.splitvault) localStorage.setItem('sv4', JSON.stringify(apps.splitvault.data));
 
     // DocVault
@@ -1010,7 +1010,7 @@ async function confirmRestore() {
 
 // ── Live stats ───────────────────────────────────────────────
 function loadStats() {
-  // SplitVault — current month ₹ total
+  // MoneyMate — current month ₹ total
   try {
     const sv = JSON.parse(localStorage.getItem("sv4") || "null");
     if (sv) {
@@ -1025,19 +1025,53 @@ function loadStats() {
         : total >= 1000   ? (total/1000).toFixed(1)+"k"
         : Math.round(total).toString();
       document.getElementById("val-expenses").textContent = "₹"+(total > 0 ? display : "0");
-      document.getElementById("stat-split").textContent = total > 0 ? "this month" : "No spend this month";
+      // also check maintenance due
+      const maintDue = Array.isArray(sv.maintenance) ? sv.maintenance.filter(i => {
+        if (!i.lastDate || !i.interval || !i.unit) return false;
+        const d = new Date(i.lastDate + 'T00:00:00');
+        const n = +i.interval || 1;
+        if (i.unit==='days')   d.setDate(d.getDate()+n);
+        else if (i.unit==='weeks')  d.setDate(d.getDate()+n*7);
+        else if (i.unit==='months') d.setMonth(d.getMonth()+n);
+        else if (i.unit==='years')  d.setFullYear(d.getFullYear()+n);
+        else return false;
+        return d <= new Date();
+      }).length : 0;
+      const splitParts = [];
+      if (total > 0) splitParts.push("this month");
+      if (maintDue > 0) splitParts.push(maintDue + " maint due");
+      document.getElementById("stat-split").textContent = splitParts.length ? splitParts.join(" · ") : "No spend this month";
     } else {
       document.getElementById("val-expenses").textContent = "₹0";
       document.getElementById("stat-split").textContent = "No spend this month";
     }
   } catch(e) { document.getElementById("val-expenses").textContent = "—"; }
 
-  // DocVault — total documents
+  // DocVault — expiring docs + medical/vaccine count
   try {
     const dv = JSON.parse(localStorage.getItem("dv3b_docs") || "[]");
-    const n = Array.isArray(dv) ? dv.length : 0;
-    document.getElementById("val-docs").textContent = n;
-    document.getElementById("stat-doc").textContent = n ? n + " document" + (n!==1?"s":"") : "No docs yet";
+    if (Array.isArray(dv) && dv.length) {
+      const today = new Date();
+      const in90  = new Date(); in90.setDate(today.getDate() + 90);
+      const expired = dv.filter(d => d.expiry && new Date(d.expiry) < today).length;
+      const soon    = dv.filter(d => d.expiry && new Date(d.expiry) >= today && new Date(d.expiry) <= in90).length;
+      const medical = dv.filter(d => d.category === 'Medical' && d.type === 'medical_rec').length;
+      const vaccine = dv.filter(d => d.type === 'vaccine').length;
+      // stat box — expiry alert
+      const alert = expired + soon;
+      document.getElementById("val-docs").textContent = alert > 0 ? alert : dv.length;
+      document.getElementById("val-docs").style.color = expired > 0 ? "var(--split-c)" : soon > 0 ? "#b45309" : "var(--ink)";
+      // card sub-stat
+      let docSub = [];
+      if (expired)       docSub.push(expired + " expired");
+      else if (soon)     docSub.push(soon + " expiring soon");
+      if (medical)       docSub.push(medical + " medical");
+      if (vaccine)       docSub.push(vaccine + " vaccine");
+      document.getElementById("stat-doc").textContent = docSub.length ? docSub.join(" · ") : dv.length + " documents";
+    } else {
+      document.getElementById("val-docs").textContent = "0";
+      document.getElementById("stat-doc").textContent = "No docs yet";
+    }
   } catch(e) { document.getElementById("val-docs").textContent = "—"; }
 
   // Wealth — total funds value compact
