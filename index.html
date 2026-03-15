@@ -121,14 +121,14 @@ body {
 
 /* ── Content wrapper ── */
 .content {
-  padding: 0 16px calc(var(--bot) + 36px);
+  padding: 0 16px calc(var(--bot) + 16px);
 }
 
 /* ── Greeting ── */
 .greeting {
-  padding: 24px 0 20px;
+  padding: 14px 0 14px;
   border-bottom: 1px solid var(--line);
-  margin-bottom: 20px;
+  margin-bottom: 14px;
   animation: fade-up .4s ease both;
 }
 
@@ -161,8 +161,8 @@ body {
 .stat-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 28px;
+  gap: 6px;
+  margin-bottom: 16px;
   animation: fade-up .4s .06s ease both;
 }
 
@@ -170,7 +170,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--rl);
-  padding: 12px 8px;
+  padding: 10px 6px;
   cursor: pointer;
   transition: border-color .15s, box-shadow .15s;
   text-decoration: none;
@@ -204,7 +204,7 @@ body {
 
 /* ── Section head ── */
 .section-head {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .section-title {
@@ -220,8 +220,8 @@ body {
 .apps-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-bottom: 28px;
+  gap: 0;
+  margin-bottom: 16px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--rxl);
@@ -234,8 +234,8 @@ body {
   text-decoration: none;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
+  gap: 12px;
+  padding: 11px 14px;
   position: relative;
   transition: background .12s;
   -webkit-tap-highlight-color: transparent;
@@ -264,12 +264,12 @@ body {
 .card-wander { --card-accent: var(--wander-c); }
 
 .card-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
-  font-size: 22px;
+  font-size: 19px;
   flex-shrink: 0;
   border: 1px solid var(--line);
 }
@@ -325,22 +325,6 @@ body {
 }
 
 /* ── Footer ── */
-.footer {
-  margin-top: 32px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  animation: fade-up .4s .3s ease both;
-}
-
-.footer-l {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--ink4);
-  letter-spacing: .04em;
-}
 
 /* ── Backup card ── */
 .backup-card {
@@ -348,7 +332,7 @@ body {
   border: 1px solid var(--line);
   border-radius: var(--rxl);
   overflow: hidden;
-  margin-bottom: 28px;
+  margin-bottom: 0;
 }
 
 .backup-stripe {
@@ -357,7 +341,7 @@ body {
 }
 
 .backup-body {
-  padding: 16px 16px 14px;
+  padding: 11px 14px;
 }
 
 .backup-row {
@@ -392,8 +376,8 @@ body {
 .backup-actions {
   display: flex;
   gap: 8px;
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px solid var(--line);
 }
 
@@ -585,7 +569,7 @@ body {
   </div>
 
   <!-- Stats -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;animation:fade-up .4s .06s ease both">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;animation:fade-up .4s .06s ease both">
     <span class="section-title">Overview</span>
     <button onclick="loadStats();this.style.opacity='.4';setTimeout(()=>this.style.opacity='1',600)"
       style="background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:10px;color:var(--ink3);padding:4px 0;letter-spacing:.04em;transition:opacity .2s">↺ Refresh</button>
@@ -688,12 +672,6 @@ body {
     <input type="file" id="restore-input" accept=".json" onchange="handleRestoreFile(event)">
   </div>
 
-  <!-- Footer -->
-  <div class="footer">
-    <span class="footer-l">ABODE · YOUR SUITE</span>
-    <span class="footer-l" id="footer-date"></span>
-  </div>
-
 </div>
 
 <!-- Restore confirmation modal -->
@@ -749,7 +727,6 @@ function updateTime() {
   const date = now.toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short' });
 
   document.getElementById('topbar-time').textContent = `${time}  ${date}`;
-  document.getElementById('footer-date').textContent = `v1.0 · ${date}`;
 
   let greet, sub;
   if      (h < 5)  { greet = 'Good night 🌙';     sub = 'Burning the midnight oil?'; }
