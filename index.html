@@ -143,10 +143,10 @@ body {
 
 .greeting-text {
   font-family: var(--sans);
-  font-size: 26px;
-  font-weight: 800;
+  font-size: 22px;
+  font-weight: 700;
   color: var(--ink);
-  letter-spacing: -.6px;
+  letter-spacing: -.8px;
   line-height: 1.15;
 }
 
@@ -186,10 +186,10 @@ body {
 
 .stat-box-val {
   font-family: var(--sans);
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--ink);
-  letter-spacing: -.04em;
+  letter-spacing: -.06em;
   line-height: 1;
   margin-bottom: 4px;
 }
@@ -322,61 +322,6 @@ body {
   color: var(--ink4);
   font-size: 12px;
   margin-top: 2px;
-}
-
-/* ── Recent list ── */
-.recent-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.recent-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--rl);
-  padding: 11px 14px;
-  cursor: pointer;
-  text-decoration: none;
-  transition: background .12s, border-color .12s;
-}
-
-.recent-row:hover {
-  background: var(--surface2);
-  border-color: var(--line2);
-}
-
-.recent-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.recent-label {
-  flex: 1;
-  font-size: 13px;
-  color: var(--ink2);
-  font-family: var(--body);
-}
-
-.recent-label strong { font-weight: 600; color: var(--ink); }
-
-.recent-time {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--ink4);
-  flex-shrink: 0;
-}
-
-.empty-recent {
-  text-align: center;
-  padding: 20px 0 4px;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--ink4);
 }
 
 /* ── Footer ── */
@@ -612,7 +557,6 @@ body {
 .greeting         { animation: fade-up .4s .00s ease both; }
 .stat-row         { animation: fade-up .4s .08s ease both; }
 .apps-section     { animation: fade-up .4s .14s ease both; }
-.recent-section   { animation: fade-up .4s .32s ease both; }
 
 @media (max-width: 300px) {
   .apps-grid { grid-template-columns: 1fr; }
@@ -649,7 +593,7 @@ body {
   <div class="stat-row" style="margin-top:0">
     <div class="stat-box" onclick="go('splitvault.html')">
       <div class="stat-box-val" id="val-expenses">—</div>
-      <div class="stat-box-label">Expenses</div>
+      <div class="stat-box-label">Spent</div>
     </div>
     <div class="stat-box" onclick="go('docvault.html')">
       <div class="stat-box-val" id="val-docs">—</div>
@@ -742,16 +686,6 @@ body {
       </div>
     </div>
     <input type="file" id="restore-input" accept=".json" onchange="handleRestoreFile(event)">
-  </div>
-
-  <!-- Recent -->
-  <div class="recent-section">
-    <div class="section-head">
-      <span class="section-title">Last opened</span>
-    </div>
-    <div class="recent-list" id="recent-list">
-      <div class="empty-recent">Open an app to start tracking activity</div>
-    </div>
   </div>
 
   <!-- Footer -->
@@ -1093,17 +1027,25 @@ async function confirmRestore() {
 
 // ── Live stats ───────────────────────────────────────────────
 function loadStats() {
-  // SplitVault — total expenses (personal + group)
+  // SplitVault — total ₹ amount (personal + group expenses)
   try {
     const sv = JSON.parse(localStorage.getItem("sv4") || "null");
     if (sv) {
-      const personal = Array.isArray(sv.personal) ? sv.personal.length : 0;
-      const groupExp = Array.isArray(sv.groups) ? sv.groups.reduce((s,g) => s + ((g.expenses||[]).filter(e=>!e.isSettlement).length), 0) : 0;
-      const n = personal + groupExp;
-      document.getElementById("val-expenses").textContent = n;
-      document.getElementById("stat-split").textContent = n ? n + " expense" + (n!==1?"s":"") : "No expenses yet";
+      const personalAmt = Array.isArray(sv.personal)
+        ? sv.personal.reduce((s,e) => s + (+e.amount||0), 0) : 0;
+      const groupAmt = Array.isArray(sv.groups)
+        ? sv.groups.reduce((s,g) => s + (g.expenses||[]).filter(e=>!e.isSettlement).reduce((gs,e) => gs + (+e.amount||0), 0), 0) : 0;
+      const total = personalAmt + groupAmt;
+      const display = total >= 10000000 ? (total/10000000).toFixed(1)+"Cr"
+        : total >= 100000 ? (total/100000).toFixed(1)+"L"
+        : total >= 1000   ? (total/1000).toFixed(1)+"k"
+        : Math.round(total).toString();
+      const count = (Array.isArray(sv.personal) ? sv.personal.length : 0)
+        + (Array.isArray(sv.groups) ? sv.groups.reduce((s,g)=>s+((g.expenses||[]).filter(e=>!e.isSettlement).length),0) : 0);
+      document.getElementById("val-expenses").textContent = total > 0 ? "₹"+display : "0";
+      document.getElementById("stat-split").textContent = count ? count + " expense" + (count!==1?"s":"") : "No expenses yet";
     } else {
-      document.getElementById("val-expenses").textContent = "0";
+      document.getElementById("val-expenses").textContent = "₹0";
       document.getElementById("stat-split").textContent = "No expenses yet";
     }
   } catch(e) { document.getElementById("val-expenses").textContent = "—"; }
@@ -1141,47 +1083,6 @@ function loadStats() {
   });
 }
 
-// ── Recent activity ──────────────────────────────────────────
-const RECENT_KEY = 'abode_recent';
-
-function getRecent() {
-  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); } catch(e) { return []; }
-}
-
-function timeAgo(ts) {
-  const d = Date.now() - ts, m = Math.floor(d/60000);
-  if (m < 1)   return 'just now';
-  if (m < 60)  return `${m}m ago`;
-  const hh = Math.floor(m/60);
-  if (hh < 24) return `${hh}h ago`;
-  return `${Math.floor(hh/24)}d ago`;
-}
-
-function renderRecent() {
-  const list = getRecent();
-  const el   = document.getElementById('recent-list');
-  if (!list.length) return;
-  el.innerHTML = list.slice(0,4).map(item => {
-    const m = APPS[item.id]; if (!m) return '';
-    return `<a class="recent-row" href="${m.href}">
-      <div class="recent-dot" style="background:${m.color}"></div>
-      <div class="recent-label"><strong>${m.emoji} ${m.name}</strong> opened</div>
-      <div class="recent-time">${timeAgo(item.ts)}</div>
-    </a>`;
-  }).join('');
-}
-
-document.querySelectorAll('.app-card').forEach(card => {
-  card.addEventListener('click', () => {
-    const id = card.id.replace('card-','');
-    if (!APPS[id]) return;
-    let rec = getRecent().filter(r => r.id !== id);
-    rec.unshift({ id, ts: Date.now() });
-    localStorage.setItem(RECENT_KEY, JSON.stringify(rec.slice(0,8)));
-  });
-});
-
-renderRecent();
 </script>
 </body>
 </html>
