@@ -1038,7 +1038,15 @@ function loadStats() {
         return d <= new Date();
       }).length : 0;
       const splitParts = [];
-      if (total > 0) splitParts.push("this month");
+      if (total > 0) {
+        const budget = sv.budget || 0;
+        if (budget > 0) {
+          const pct = Math.max(0, Math.round(((budget - total) / budget) * 100));
+          splitParts.push(pct + "% budget left");
+        } else {
+          splitParts.push("this month");
+        }
+      }
       if (maintDue > 0) splitParts.push(maintDue + " maint due");
       document.getElementById("stat-split").textContent = splitParts.length ? splitParts.join(" · ") : "No spend this month";
     } else {
@@ -1081,7 +1089,18 @@ function loadStats() {
       const total = wm.funds.reduce((s,f) => s + (f.current||0), 0);
       const display = total >= 10000000 ? (total/10000000).toFixed(1)+"Cr" : total >= 100000 ? (total/100000).toFixed(1)+"L" : total >= 1000 ? (total/1000).toFixed(1)+"k" : Math.round(total).toString();
       document.getElementById("val-funds").textContent = display || "0";
-      document.getElementById("stat-wealth").textContent = wm.funds.length + " fund" + (wm.funds.length!==1?"s":"");
+      // Health score — same logic as wealth app getHealthScore()
+      const total_w = wm.funds.reduce((s,f)=>s+(f.current||0),0);
+      let healthScore = 100;
+      if (total_w && wm.funds.length) {
+        const avgDev = wm.funds.reduce((s,f)=>{
+          const t = wm.funds.reduce((a,b)=>a+(b.current||0),0);
+          const dev = t>0 ? Math.abs((f.current/t) - f.target) : 0;
+          return s+dev;
+        },0) / wm.funds.length;
+        healthScore = Math.max(0, Math.min(100, Math.round((1 - avgDev/0.05)*100)));
+      }
+      document.getElementById("stat-wealth").textContent = "health " + healthScore + "%";
     } else {
       document.getElementById("val-funds").textContent = "0";
       document.getElementById("stat-wealth").textContent = "No funds yet";
