@@ -638,7 +638,12 @@ body {
   </div>
 
   <!-- Stats -->
-  <div class="stat-row">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;animation:fade-up .4s .06s ease both">
+    <span class="section-title">Overview</span>
+    <button onclick="loadStats();this.style.opacity='.4';setTimeout(()=>this.style.opacity='1',600)"
+      style="background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:10px;color:var(--ink3);padding:4px 0;letter-spacing:.04em;transition:opacity .2s">↺ Refresh</button>
+  </div>
+  <div class="stat-row" style="margin-top:0">
     <div class="stat-box" onclick="go('splitvault.html')">
       <div class="stat-box-val" id="val-groups">—</div>
       <div class="stat-box-label">Groups</div>
@@ -949,12 +954,38 @@ function handleRestoreFile(e) {
   const reader = new FileReader();
   reader.onload = ev => {
     try {
-      const payload = JSON.parse(ev.target.result);
-      if (!payload || !payload.apps) { toast('✗ Invalid backup file'); return; }
+      const raw = JSON.parse(ev.target.result);
+      let payload;
+
+      if (raw && raw.apps) {
+        // Abode unified backup
+        payload = raw;
+      } else if (raw && (raw.trips || raw.id)) {
+        // WanderPlan individual backup { version:2, trips:[...] }
+        payload = { version:1, exported: raw.exported || new Date().toISOString(), _source:'wanderplan',
+          apps: { wanderplan: { version:2, exported: raw.exported, trips: raw.trips || (raw.id ? [raw] : []) } } };
+      } else if (raw && (raw.user !== undefined || raw.groups !== undefined)) {
+        // SplitVault individual backup
+        payload = { version:1, exported: new Date().toISOString(), _source:'splitvault',
+          apps: { splitvault: { key:'sv4', data: raw } } };
+      } else if (Array.isArray(raw)) {
+        // DocVault individual backup (array of docs)
+        payload = { version:1, exported: new Date().toISOString(), _source:'docvault',
+          apps: { docvault: { key:'dv3b_docs', data: raw } } };
+      } else if (raw && (raw.funds || raw.stocks || raw.sip !== undefined)) {
+        // Wealth individual backup
+        payload = { version:1, exported: new Date().toISOString(), _source:'wealth',
+          apps: { wealth: { key:'wm_state', data: raw } } };
+      } else {
+        toast('✗ Unrecognised backup file');
+        e.target.value = '';
+        return;
+      }
+
       _pendingRestore = payload;
       showRestoreModal(payload);
     } catch(_) { toast('✗ Could not read file'); }
-    e.target.value = ''; // reset input
+    e.target.value = '';
   };
   reader.readAsText(file);
 }
@@ -968,12 +999,14 @@ function showRestoreModal(payload) {
     { id:'wanderplan', label:'WanderPlan', emoji:'✈️', has: !!apps.wanderplan  },
   ];
 
+  const sourceLabel = { wanderplan:'WanderPlan', splitvault:'SplitVault', docvault:'DocVault', wealth:'Wealth' };
+  const sourceName  = payload._source ? `${sourceLabel[payload._source] || payload._source} backup` : 'Abode backup';
   const date = payload.exported
-    ? new Date(payload.exported).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+    ? new Date(payload.exported).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
     : 'Unknown date';
 
   document.getElementById('modal-sub').textContent =
-    `From backup dated ${date}. Existing data will be overwritten.`;
+    `${sourceName} dated ${date}. Existing data will be overwritten.`;
 
   document.getElementById('modal-app-rows').innerHTML = rows.map(r => `
     <div class="restore-app-row">
