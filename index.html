@@ -216,88 +216,98 @@ body {
   font-weight: 600;
 }
 
-/* ── App cards ── */
-.apps-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+/* ── App list ── */
+.apps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   margin-bottom: 28px;
-}
-
-.app-card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--rxl);
   overflow: hidden;
+}
+
+.app-card {
+  background: var(--surface);
   cursor: pointer;
   text-decoration: none;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
   position: relative;
-  transition: box-shadow .18s, border-color .18s, transform .18s cubic-bezier(.34,1.56,.64,1);
+  transition: background .12s;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  border-bottom: 1px solid var(--line);
 }
 
-.app-card:hover {
-  box-shadow: var(--shlg);
-  border-color: var(--line2);
-  transform: translateY(-2px);
+.app-card:last-child { border-bottom: none; }
+.app-card:active { background: var(--surface2); }
+
+/* left accent bar */
+.app-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--card-accent);
+  opacity: 0;
+  transition: opacity .15s;
 }
+.app-card:hover::before { opacity: 1; }
 
-.app-card:active { transform: scale(.96); }
-
-/* coloured stripe */
-.card-stripe { height: 3px; width: 100%; flex-shrink: 0; }
-.card-split  .card-stripe { background: var(--split-c); }
-.card-wealth .card-stripe { background: var(--wealth-c); }
-.card-doc    .card-stripe { background: var(--doc-c); }
-.card-wander .card-stripe { background: var(--wander-c); }
-
-.card-body {
-  padding: 16px 16px 14px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
+.card-split  { --card-accent: var(--split-c);  }
+.card-wealth { --card-accent: var(--wealth-c); }
+.card-doc    { --card-accent: var(--doc-c);    }
+.card-wander { --card-accent: var(--wander-c); }
 
 .card-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
-  background: var(--surface2);
-  border: 1px solid var(--line);
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
-  font-size: 20px;
-  margin-bottom: 12px;
+  font-size: 22px;
   flex-shrink: 0;
+  border: 1px solid var(--line);
+}
+
+.card-split  .card-icon { background: #fff4f3; }
+.card-wealth .card-icon { background: #f5f0ff; }
+.card-doc    .card-icon { background: #eff4ff; }
+.card-wander .card-icon { background: #ecfdf5; }
+
+.card-mid {
+  flex: 1;
+  min-width: 0;
 }
 
 .card-name {
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
   color: var(--ink);
   letter-spacing: -.03em;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 .card-desc {
   font-size: 11px;
   color: var(--ink3);
-  line-height: 1.4;
-  margin-bottom: 14px;
   font-family: var(--body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.card-footer {
-  margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
+.card-right {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .card-stat-text {
@@ -305,17 +315,14 @@ body {
   font-size: 10px;
   color: var(--ink4);
   letter-spacing: .02em;
+  text-align: right;
 }
 
-.card-badge {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.card-chevron {
+  color: var(--ink4);
+  font-size: 12px;
+  margin-top: 2px;
 }
-.card-split  .card-badge { background: var(--split-c); }
-.card-wealth .card-badge { background: var(--wealth-c); }
-.card-doc    .card-badge { background: var(--doc-c); }
-.card-wander .card-badge { background: var(--wander-c); }
 
 /* ── Recent list ── */
 .recent-list {
@@ -605,10 +612,6 @@ body {
 .greeting         { animation: fade-up .4s .00s ease both; }
 .stat-row         { animation: fade-up .4s .08s ease both; }
 .apps-section     { animation: fade-up .4s .14s ease both; }
-.app-card:nth-child(1) { animation: fade-up .4s .16s ease both; }
-.app-card:nth-child(2) { animation: fade-up .4s .20s ease both; }
-.app-card:nth-child(3) { animation: fade-up .4s .24s ease both; }
-.app-card:nth-child(4) { animation: fade-up .4s .28s ease both; }
 .recent-section   { animation: fade-up .4s .32s ease both; }
 
 @media (max-width: 300px) {
@@ -645,8 +648,8 @@ body {
   </div>
   <div class="stat-row" style="margin-top:0">
     <div class="stat-box" onclick="go('splitvault.html')">
-      <div class="stat-box-val" id="val-groups">—</div>
-      <div class="stat-box-label">Groups</div>
+      <div class="stat-box-val" id="val-expenses">—</div>
+      <div class="stat-box-label">Expenses</div>
     </div>
     <div class="stat-box" onclick="go('docvault.html')">
       <div class="stat-box-val" id="val-docs">—</div>
@@ -657,8 +660,8 @@ body {
       <div class="stat-box-label">Trips</div>
     </div>
     <div class="stat-box" onclick="go('wealth.html')">
-      <div class="stat-box-val" id="val-wealth">—</div>
-      <div class="stat-box-label">Holdings</div>
+      <div class="stat-box-val" id="val-funds">—</div>
+      <div class="stat-box-label">Funds ₹</div>
     </div>
   </div>
 
@@ -667,57 +670,53 @@ body {
     <div class="section-head">
       <span class="section-title">Apps</span>
     </div>
-    <div class="apps-grid">
+    <div class="apps-list">
 
       <a class="app-card card-split" href="splitvault.html" id="card-split">
-        <div class="card-stripe"></div>
-        <div class="card-body">
-          <div class="card-icon">🧾</div>
+        <div class="card-icon">🧾</div>
+        <div class="card-mid">
           <div class="card-name">SplitVault</div>
-          <div class="card-desc">Split expenses &amp; settle group debts</div>
-          <div class="card-footer">
-            <span class="card-stat-text" id="stat-split">—</span>
-            <span class="card-badge"></span>
-          </div>
+          <div class="card-desc">Split expenses &amp; settle debts</div>
+        </div>
+        <div class="card-right">
+          <div class="card-stat-text" id="stat-split">—</div>
+          <div class="card-chevron">›</div>
         </div>
       </a>
 
       <a class="app-card card-wealth" href="wealth.html" id="card-wealth">
-        <div class="card-stripe"></div>
-        <div class="card-body">
-          <div class="card-icon">💹</div>
+        <div class="card-icon">💹</div>
+        <div class="card-mid">
           <div class="card-name">Wealth</div>
-          <div class="card-desc">SIP, lumpsum &amp; portfolio tracker</div>
-          <div class="card-footer">
-            <span class="card-stat-text" id="stat-wealth">—</span>
-            <span class="card-badge"></span>
-          </div>
+          <div class="card-desc">SIP, lumpsum &amp; portfolio</div>
+        </div>
+        <div class="card-right">
+          <div class="card-stat-text" id="stat-wealth">—</div>
+          <div class="card-chevron">›</div>
         </div>
       </a>
 
       <a class="app-card card-doc" href="docvault.html" id="card-doc">
-        <div class="card-stripe"></div>
-        <div class="card-body">
-          <div class="card-icon">📁</div>
+        <div class="card-icon">📁</div>
+        <div class="card-mid">
           <div class="card-name">DocVault</div>
-          <div class="card-desc">Store &amp; manage your documents</div>
-          <div class="card-footer">
-            <span class="card-stat-text" id="stat-doc">—</span>
-            <span class="card-badge"></span>
-          </div>
+          <div class="card-desc">Store &amp; manage documents</div>
+        </div>
+        <div class="card-right">
+          <div class="card-stat-text" id="stat-doc">—</div>
+          <div class="card-chevron">›</div>
         </div>
       </a>
 
       <a class="app-card card-wander" href="wanderplan.html" id="card-wander">
-        <div class="card-stripe"></div>
-        <div class="card-body">
-          <div class="card-icon">✈️</div>
+        <div class="card-icon">✈️</div>
+        <div class="card-mid">
           <div class="card-name">WanderPlan</div>
-          <div class="card-desc">Plan trips, itineraries &amp; budgets</div>
-          <div class="card-footer">
-            <span class="card-stat-text" id="stat-wander">—</span>
-            <span class="card-badge"></span>
-          </div>
+          <div class="card-desc">Plan trips &amp; itineraries</div>
+        </div>
+        <div class="card-right">
+          <div class="card-stat-text" id="stat-wander">—</div>
+          <div class="card-chevron">›</div>
         </div>
       </a>
 
@@ -1094,42 +1093,53 @@ async function confirmRestore() {
 
 // ── Live stats ───────────────────────────────────────────────
 function loadStats() {
+  // SplitVault — total expenses (personal + group)
   try {
-    const sv = JSON.parse(localStorage.getItem('sv4') || 'null');
-    // groups is an array, not an object
-    const n  = sv && Array.isArray(sv.groups) ? sv.groups.length : 0;
-    document.getElementById('val-groups').textContent = n;
-    document.getElementById('stat-split').textContent = n ? `${n} group${n!==1?'s':''}` : 'No groups yet';
-  } catch(e) {}
+    const sv = JSON.parse(localStorage.getItem("sv4") || "null");
+    if (sv) {
+      const personal = Array.isArray(sv.personal) ? sv.personal.length : 0;
+      const groupExp = Array.isArray(sv.groups) ? sv.groups.reduce((s,g) => s + ((g.expenses||[]).filter(e=>!e.isSettlement).length), 0) : 0;
+      const n = personal + groupExp;
+      document.getElementById("val-expenses").textContent = n;
+      document.getElementById("stat-split").textContent = n ? n + " expense" + (n!==1?"s":"") : "No expenses yet";
+    } else {
+      document.getElementById("val-expenses").textContent = "0";
+      document.getElementById("stat-split").textContent = "No expenses yet";
+    }
+  } catch(e) { document.getElementById("val-expenses").textContent = "—"; }
 
+  // DocVault — total documents
   try {
-    const dv = JSON.parse(localStorage.getItem('dv3b_docs') || '[]');
-    const n  = Array.isArray(dv) ? dv.length : 0;
-    document.getElementById('val-docs').textContent = n;
-    document.getElementById('stat-doc').textContent = n ? `${n} document${n!==1?'s':''}` : 'No docs yet';
-  } catch(e) {}
+    const dv = JSON.parse(localStorage.getItem("dv3b_docs") || "[]");
+    const n = Array.isArray(dv) ? dv.length : 0;
+    document.getElementById("val-docs").textContent = n;
+    document.getElementById("stat-doc").textContent = n ? n + " document" + (n!==1?"s":"") : "No docs yet";
+  } catch(e) { document.getElementById("val-docs").textContent = "—"; }
 
+  // Wealth — total funds value compact
   try {
-    const wm = JSON.parse(localStorage.getItem('wm_state') || 'null');
-    // wealth uses funds + stocks arrays, not portfolio
-    const funds  = (wm && Array.isArray(wm.funds))  ? wm.funds.length  : 0;
-    const stocks = (wm && Array.isArray(wm.stocks)) ? wm.stocks.length : 0;
-    const n = funds + stocks;
-    document.getElementById('val-wealth').textContent = n;
-    document.getElementById('stat-wealth').textContent = n ? `${funds}F · ${stocks}S` : 'No holdings yet';
-  } catch(e) {}
+    const wm = JSON.parse(localStorage.getItem("wm_state") || "null");
+    if (wm && Array.isArray(wm.funds)) {
+      const total = wm.funds.reduce((s,f) => s + (f.current||0), 0);
+      const display = total >= 10000000 ? (total/10000000).toFixed(1)+"Cr" : total >= 100000 ? (total/100000).toFixed(1)+"L" : total >= 1000 ? (total/1000).toFixed(1)+"k" : Math.round(total).toString();
+      document.getElementById("val-funds").textContent = display || "0";
+      document.getElementById("stat-wealth").textContent = wm.funds.length + " fund" + (wm.funds.length!==1?"s":"");
+    } else {
+      document.getElementById("val-funds").textContent = "0";
+      document.getElementById("stat-wealth").textContent = "No funds yet";
+    }
+  } catch(e) { document.getElementById("val-funds").textContent = "—"; }
 
-  // WanderPlan — use readIDB helper (handles missing DB gracefully)
-  readIDB('wanderplan_db', 2, 'trips').then(trips => {
-    const n = (trips || []).length;
-    document.getElementById('val-trips').textContent = n;
-    document.getElementById('stat-wander').textContent = n ? `${n} trip${n!==1?'s':''} planned` : 'No trips yet';
+  // WanderPlan — trips from IndexedDB
+  readIDB("wanderplan_db", 2, "trips").then(trips => {
+    const n = (trips||[]).length;
+    document.getElementById("val-trips").textContent = n;
+    document.getElementById("stat-wander").textContent = n ? n + " trip" + (n!==1?"s":"") + " planned" : "No trips yet";
   }).catch(() => {
-    document.getElementById('val-trips').textContent = '0';
-    document.getElementById('stat-wander').textContent = 'No trips yet';
+    document.getElementById("val-trips").textContent = "0";
+    document.getElementById("stat-wander").textContent = "No trips yet";
   });
 }
-loadStats();
 
 // ── Recent activity ──────────────────────────────────────────
 const RECENT_KEY = 'abode_recent';
